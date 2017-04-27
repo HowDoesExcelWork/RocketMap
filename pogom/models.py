@@ -50,19 +50,19 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-if len(args.cp_accountcsv):
-    cp_account_queue = Queue()
-if len(args.iv_accountcsv):
-    iv_account_queue = Queue()
-
-if len(args.cp_accountcsv) > 0:
-    for i, account in enumerate(args.cp_accountcsv):
-        cp_account_queue.put(account)
-if len(args.iv_accountcsv) > 0:
-    # print(args.iv_accountcsv)
-    for i, account in enumerate(args.iv_accountcsv):
-        # print(account)
-        iv_account_queue.put(account)
+if not args.only_server:
+    if len(args.cp_accountcsv):
+        cp_account_queue = Queue()
+    if len(args.iv_accountcsv):
+        iv_account_queue = Queue()
+    if len(args.cp_accountcsv) > 0:
+        for i, account in enumerate(args.cp_accountcsv):
+            cp_account_queue.put(account)
+    if len(args.iv_accountcsv) > 0:
+        # print(args.iv_accountcsv)
+        for i, account in enumerate(args.iv_accountcsv):
+            # print(account)
+            iv_account_queue.put(account)
 
 db_schema_version = 20
 
