@@ -43,7 +43,7 @@ from pgoapi import utilities as util
 from pgoapi.hash_server import (HashServer, BadHashRequestException,
                                 HashingOfflineException)
 from .models import (parse_map, GymDetails, parse_gyms, MainWorker,
-                     WorkerStatus, HashKeys, Pokemon)
+                     WorkerStatus, HashKeys, Pokemon, Shadowbanned)
 from .utils import (now, clear_dict_response, parse_new_timestamp_ms,
                     calc_pokemon_level)
 from .transform import get_new_coords, jitter_location
@@ -935,6 +935,7 @@ def search_worker_thread(args, account_queue, account_sets,
             status['skip'] = 0
             status['missed'] = 0
             status['captcha'] = 0
+            status['nonrares'] = 0
 
             stagger_thread(args)
 
@@ -1157,6 +1158,41 @@ def search_worker_thread(args, account_queue, account_sets,
                         step_location[0], step_location[1],
                         parsed['count'])
                     log.debug(status['message'])
+
+                except Shadowbanned as e:
+                    if e.missed_ids:
+                        log.warning(
+                            'Account %s could not find pokemon ID: %s. ' +
+                            'Shadowbanned, switching accounts... ',
+                            e.account['username'], e.missed_ids)
+                    else:
+                        log.warning(
+                            'Account %s could not find rare pokemons ' +
+                            '%s times in a row. Possibly shadowbanned, ' +
+                            'switching accounts... ',
+                            e.account['username'], status['nonrares'])
+
+                    sb_time = now()
+                    # Write into file if we are 100% sure of shadowban
+                    if e.final:
+                        with open('acc_shadowbanned.csv', 'a+') as sb_file:
+                            if not any(account['username'] in x.rstrip('\n')
+                                       for x in sb_file):
+                                sb_file.write('{},{},{}\n'.format(
+                                    account['auth_service'],
+                                    account['username'],
+                                    account['password']))
+                        # Add some more time for the account to rest
+                        sb_time += 86400
+
+                    account_failures.append({'account': account,
+                                             'last_fail_time': sb_time,
+                                             'reason': 'shadowbanned'})
+
+                    # Exit this loop to get a new account and have the API
+                    # recreated.
+                    break
+
                 except Exception as e:
                     parsed = False
                     status['fail'] += 1
