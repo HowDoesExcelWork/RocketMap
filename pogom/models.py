@@ -2199,7 +2199,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
     log.info('Parsing found Pokemon: %d, nearby: %d, pokestops: %d, gyms: %d.',
              len(pokemons) + skipped_mons + len(encounter_pokemons),
-             nearby_pokemon,
+             nearby_pokemon_count,
              len(pokestops) + skipped_stops,
              len(gyms))
 
